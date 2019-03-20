@@ -7,7 +7,26 @@ import java.util.*;
 public class MyCollections {
 
     public static void main(String[] args){
-        myQueues();
+        asList();
+    }
+
+    private static void maps(){
+        // ways to create immutable maps
+
+        // works for any arbitrary number of key/value pairs
+        Map<String, String> wordToMood = Map.ofEntries(
+                Map.entry("happy", "HAPPY"),
+                Map.entry("sad", "SAD")
+        );
+
+        // for 10 values of less
+        Map<String, String> wordToMood2 = Map.of(
+                "good", "GOOD",
+                "great", "great"
+        );
+
+        // copy of immutable map
+        Map<String, String> copyOfMoods = Map.copyOf(wordToMood);
     }
 
     public static void twoDArray(){
@@ -18,12 +37,21 @@ public class MyCollections {
         }
     }
 
-    public static void asList(){
+    private static void asList(){
         List<String> names = Arrays.asList("Jeff", "Zen");
         List<String> singleName = Collections.singletonList("Jeff");
+
+        // ways to create immutable collections
+
+        // Au contraire to Arrays.asList(), below is immutable
+        List<String> moods = List.of("Happy", "Sad");
+
+        // to create a copy of an immutable list, and the copy be immutable as well
+        List<String> moodsCopy = List.copyOf(moods);
+
     }
 
-    public static void sets(){
+    private static void sets(){
         Set<String> animals = new HashSet<>();
         animals.add("lion");
         animals.add("zebra");
@@ -46,9 +74,17 @@ public class MyCollections {
         students.add(student); students.add(student1); students.add(student2);
 
         students.forEach(s -> System.out.println(s.getFullName()));
+
+        // ways to create immutable sets
+
+        Set<String> moods = Set.of("Happy", "Sad");
+
+        // create copy of immutable sets
+        Set<String> moodsCopy = Set.copyOf(moods);
+
     }
 
-    public static void myQueues(){
+    private static void myQueues(){
         Deque<Student> studentArrayDeque = new ArrayDeque<>();
         Student student = new Student("Jeff", 23);
         Student student1 = new Student("Zen", 21);

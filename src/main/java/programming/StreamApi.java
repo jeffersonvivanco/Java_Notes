@@ -3,6 +3,8 @@ package programming;
 import models.Person;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,7 +14,8 @@ public class StreamApi {
         //stream_example();
         //reduction_example();
 //        parallel_stream_example();
-        map_example();
+//        map_example();
+        createImmutableCollections();
     }
 
     public static void stream_example(){
@@ -97,7 +100,7 @@ public class StreamApi {
         family.add(p5);
 
         // using second version of reduce
-        int count = family.stream().map(person -> person.getAge())
+        int count = family.stream().map(Person::getAge)
                 .reduce(0, (age1, age2) -> {
                     if (age2 >= 20)
                         return age1 += 1;
@@ -195,6 +198,30 @@ public class StreamApi {
         System.out.println("\nUsing Spliterator\n");
         Spliterator<Person> familySpliterator = familyList.stream().spliterator();
         while (familySpliterator.tryAdvance(f -> System.out.println(f.getName())));
+
+
+    }
+
+    private static void createImmutableCollections(){
+        // creating immutable collections from streams
+        // Java 10 makes it easier to create immutable collections from stream operations, with the addition of the
+        // toUnmodifiableList, toUnmodifiableSet, and toUnmodifiableMap method on Collectors
+
+        // ex: we have a stream operation that takes a sentence and turns it into a list of unique words
+        Pattern p = Pattern.compile("\\s*[^\\p{IsAlphabetic}]");
+        String message = "Java java is fun";
+        List<String> uniqueWords = p.splitAsStream(message)
+                .map(String::toLowerCase).distinct().collect(Collectors.toUnmodifiableList());
+
+        // using an immutable map
+        // ex: also calculates the number of times a word appears
+        Map<String, Integer> wordCount = p.splitAsStream(message).map(String::toLowerCase)
+                .collect(Collectors.toUnmodifiableMap(Function
+                        .identity(), word -> 1, (oldCount, newVal) -> oldCount + newVal));
+
+        for(var e: wordCount.entrySet()){
+            System.out.println(String.format("word %s, count %s", e.getKey(), e.getValue()));
+        }
 
     }
 
