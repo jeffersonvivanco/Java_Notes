@@ -5,25 +5,34 @@ plugins {
 group 'Java_Notes'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = '11.0.1'
+apply plugin: 'java'
 
 repositories {
     mavenCentral()
 }
 
+tasks.withType(JavaCompile) {
+    sourceCompatibility = '13'
+    targetCompatibility = '13'
+    options.compilerArgs.addAll(['--enable-preview'])
+}
+
+clean {
+    delete "out"
+    delete "build"
+}
+
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
     compile 'com.google.guava:guava:23.0'
-    // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
+    compile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-core', version: '9.0.17'
+    compile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-jasper', version: '9.0.17'
+    
+    testCompile('org.junit.jupiter:junit-jupiter-api:5.4.1')
+    testCompile('org.junit.jupiter:junit-jupiter-params:5.4.1')
+    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.4.1')
 
-    testCompile('org.junit.jupiter:junit-jupiter-api:5.4.0')
-    testCompile('org.junit.jupiter:junit-jupiter-params:5.4.0')
-    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.4.0')
-
-// https://mvnrepository.com/artifact/com.sun.mail/javax.mail
     compile group: 'com.sun.mail', name: 'javax.mail', version: '1.6.2'
-
-
 }

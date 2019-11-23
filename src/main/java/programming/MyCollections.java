@@ -48,7 +48,7 @@ public class MyCollections {
 
         // to create a copy of an immutable list, and the copy be immutable as well
         List<String> moodsCopy = List.copyOf(moods);
-
+        System.out.println(moodsCopy.get(0));
     }
 
     private static void sets(){

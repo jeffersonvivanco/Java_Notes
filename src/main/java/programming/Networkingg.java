@@ -62,7 +62,7 @@ wise to structure your code so that you cache IP address information locally rat
 public class Networkingg {
 
     public static void main(String[] args){
-        datagramExample(args);
+        inetAddressTest();
     }
 
     /*
@@ -97,8 +97,7 @@ public class Networkingg {
     * The ServerSocket class is designed to be a "listener", which waits for clients to connect before doing anything. Thus
     ServerSocket is for servers.
     * The Socket class is for clients. It is designed to connect to server sockets and initiate protocol exchanges. The
-    creation of a Socket object implicitly establishes a connection between the client and server. The creation of a Socket
-    object implicitly establishes a connection between the client and server.
+    creation of a Socket object implicitly establishes a connection between the client and server.
 
     TCP/IP Server Sockets
 
@@ -142,7 +141,7 @@ public class Networkingg {
 
     URL
 
-    * The Web is a loose collection of higher-level protocols and file formats, all unified in a web browser.
+    * The Web is a lose collection of higher-level protocols and file formats, all unified in a web browser.
     One of the most important aspects of the Web is that Tim Berners-Lee devised a scalable way to locate all
     of the resources on the Net. Once you can reliably name anything and everything, it becomes a very powerful
     paradigm. The Uniform Resource Locator (URL) does exactly that.
