@@ -300,6 +300,7 @@ StringBuilder yourself.
     System.out.println("NO MATCH");
   </pre>
   
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -328,9 +329,15 @@ StringBuilder yourself.
     outside of your classes. AOP is provided by the Java EE using EJB Interception, and by the Spring Framework AOP mechanism.
   * Using Design Patterns
     * Read Design Patterns (Addison Wesley)
-  
-  
-  
+* Polymorphism and Interfaces
+  * Basically, the best uses of polymorphism in Java is the ability to refer to a child class by using the parent class
+  reference. In polymorphism, "many forms" means the ability of an object or method to take many forms. Method overriding
+  and method overloading basically mean a behavior in Java that allows the developer to take advantage of that principle.
+  * Basically, an interface is a contract that a developer must follow while implementing it. It states that when you are
+  implementing something, you must provide the given set of the feature, or else you will be incomplete. Here, incomplete
+  means that the class is not a complete one (for ex, an abstract class). Another advantage -- from a program design perspective -- is
+  the idea of "programming to an interface, not implementations." That means that when we are designing our code, we should
+  focus on the interface or the functionalities that the interface provides, not the actual implementation.
   
   
   

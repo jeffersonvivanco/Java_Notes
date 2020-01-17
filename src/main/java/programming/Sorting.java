@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import static java.util.Comparator.comparing;
 
 public class Sorting {
 
@@ -33,6 +34,22 @@ public class Sorting {
         students.add(student4);
         Collections.sort(students, AGE_ORDER);
         System.out.println(students);
+
+    }
+
+    public static void sortWithLambdaExpression(List<Student> students) {
+        students.sort((std1, std2) -> std1.getFullName().compareTo(std2.getFullName()));
+        System.out.println("Students sorted by name");
+        students.forEach(s -> System.out.println(s.getFullName()));
+
+        /*
+        Can we make our code even more readable? Yes, Comparator has a static helper method called, comparing, that takes
+        a function extracting a Comparable key and produces a Comparator object
+         */
+        students.sort(comparing((std) -> std.getFullName()));
+
+        // We can use method references to make our code slightly less verbose
+        students.sort(comparing(Student::getFullName));
 
     }
 }
