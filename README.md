@@ -301,6 +301,7 @@ StringBuilder yourself.
   </pre>
   
   
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -342,6 +343,7 @@ StringBuilder yourself.
   
   
   
+  
 ## Functional Programming Techniques: Functional Interfaces, Streams, Parallel Collections
 * Functional Programming
   * ... a programming paradigm, a style of building the structure and elements of computer programs, that treats computation
@@ -373,6 +375,34 @@ StringBuilder yourself.
 * You want to use existing interfaces, instead of defining your own, for use with Lambdas. Use the Java 8 lambda Functional
 interfaces from java.util.function.
 
-## Java Application Vulnerabilities
+### Functional programming patterns with Java 8
+
+**Prefer named functions over anonymous lambdas**
+
+Always extract complex lambdas into functions with an expressive name that you can then reference using `::` from
+* the same class (`this::`)
+* another class (`mapper::`)
+* some static helper method (`SomeClass::`)
+* the Stream *item* type (`Item::`)
+* even some constructor (`UserDto::new`), if its simple enough
+
+In short never type `-> {`.
+
+**Stream wrecks**
+
+The idea here is to avoid excessive method chaining by introducing explanatory variables. This means extracting methods
+and even work with variables of a function or `Stream` type, in order to make the code as clear as possible to your
+reader.
+
+**Fighting the greatest beast of all: Null Pointer**
+
+Whenever null gives you problems in Java 8, don't hesitate to jump on Optional and apply transformation functions on the,
+potentially empty, magic box. The clean code rule becomes, don't take Optional parameters; instead, return an Optional
+whenever your function wants to signal to your caller that there might be NO return value in some cases.
+
+**The Loan Pattern / Passing a block**
+
+ 
+ 
 
 
