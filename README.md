@@ -402,7 +402,286 @@ whenever your function wants to signal to your caller that there might be NO ret
 
 **The Loan Pattern / Passing a block**
 
- 
- 
+For the following exercise, let's export the orders to a CSV file
+```java
+interface OrderedRepo {
+    List<Object> findByActiveTrue();
+}
+public class LoanPattern {
+    private OrderedRepo orderedRepo;
+    public File exportFile(String fileName) throws Exception {
+        File file = new File("export/" + fileName);
+        try (Writer writer = new FileWriter(file)) {
+            writer.write("OrderID;Date\n");
+            // Unchecked: you need this because write() throws IOException, even when the Consumer expected by the forEach
+            // does not. You should suffer if you throw checked exceptions.
+            orderedRepo.findByActiveTrue().map(o -> o.getId() + ";" + o.getCreationDate()).forEach(Unchecked.consumer(writer::write));
+            return file;
+        } catch (Exception e) {
+            // Todo: Send email notification
+            throw e;
+        }
+    }
+}
+```
+I'll open a `Writer`, stream over all the orders, convert them, and then write each to the file. The vague odor of fear
+at the end of this example stems from the possibility that, perhaps, no one will ever catch my exception afterward. Ideally,
+you should trust your team with these exceptions, so that if they are thrown on any threads, they are gracefully caught
+and logged.
+
+There are many ways you could stray from the path of righteousness while doing that, including booleans, enum ExportType,
+and @Overriding concrete methods, but I will sketch here an application of the Template Method design pattern.
+```java
+interface OrderedRepo {
+    List<Object> findByActiveTrue();
+}
+abstract class FileExporter {
+    public File exportFile(String filename) throws Exception {
+        File file = new File("export/"+filename);
+        try(Writer writer = new FileWriter(file)) {
+            writeContent(writer);
+        } catch (Exception e) {
+            // todo: send email notification
+            throw e;
+        }
+    }
+    
+    protected abstract void writeContent(Writer writer) throws IOException;
+}
+
+class OrderExportWriter extends FileExporter {
+    private OrderRepo orderRepo;
+    @Override
+    protected void writeContent(Writer writer) throws IOException {
+        writer.write("OrderID;Date\n");
+        orderRepo.findByActiveValue().map(o -> o.getId() + ";" + o.getCreationDate())
+            .forEach(Unchecked.consumer(writer::write));
+    }
+}
+```
+
+I want you to ask yourself: why did we use that dangerous word there? Why did we play with fire? What's the excuse for
+that awful `extends` in the code? To force me to provide the missing logic, there will be a function `f(Writer):void`
+whenever I subclass the `FileExporter`.
+
+But we can do that a lot easier in Java 8. We just need to take a `Consumer<Writer>` as a method parameter!
+
+```java
+import java.io.IOException;interface OrderedRepo {
+    List<Object> findByActiveTrue();
+}
+class FileExporter {
+    public File exportFile(String filename, Consumer<Writer> contentWriter) throws Exception {
+        File file = new File("export/" + filename);
+        try (Writer writer = new FileWriter(file)) {
+            contentWriter.accept(writer); // passing writer object
+            return file;
+        } catch (Exception e) {
+            // todo: send email notification
+            throw e;
+        }
+    }
+}
+class OrderExportWriter {
+    private OrderRepo orderRepo;
+    public void writeOrders(Writer writer) throws IOException {
+        writer.write("OrderID;Date\n");
+        orderRepo.findByActiveTrue().map(o -> o.getId() + ";" + o.getCreationDate())
+            .forEach(Unchecked.consumer(writer::write));
+    }
+}
+```
+
+Wow, a lot of things have changed here. Instead of `abstract` and `extends`, the `exportFile()` function got a new
+`Consumer<Writer>` parameter, which it calls to write the actual export content. To get the whole picture, let's sketch
+the client code:
+
+`fileExporter.exportFile("orders.csv", Unchecked.consumer(orderWrite::writeOrders));`
+
+Here I had to use `Unchecked` again to make it compile, because `writeOrders()` declaration throws an exception!
+
+The fundamental idea is that **whenever you have some "variable logic", you can consider taking it as a method parameter**.
+The above example, however, is a slight variation, in which the function given as a parameter works with a resource that
+is managed by the host function. In our example, `OrderExportWriter.writeOrders` receives a `Writer` as a parameter to
+write the content to it. However, `writeOrders` is not concerned with creating, closing, or handling errors related to
+`FileWriter`. That's why we call this the **Loan pattern**. **This is a function we pass in that is essentially borrowed
+so the Writer can do its job**.
+
+One major benefit of the *Loan pattern* is that it decouples nicely with the infrastructural code (`FileExporter`) from
+the actual export format logic (`OrderExportWriter`). Through a better separation by layers of abstraction, this enables
+a *Dependency Inversion*, i.e. you could keep the `OrderWriter` in a more interior layer. Because it decouples the code
+so nicely, the design becomes a lot easier to reason with and unit test. You can test `writeOrders()` by passing it a
+`StringWriter` and, afterward, see what was written to it. To test the `FileExporter`, you can pass simply a dummy
+`Consumer` that just writes "dummy", and then verify that the infra code did its job.
+
+There is one more variation of the *Passing-a-Block* pattern, the *Execute Around* pattern. Syntactically, the code is
+very similar: `measure(() -> stuff()`. However, the purpose is slightly is different. Here, `stuff()` was already
+implemented, but, afterward, we wanted to execute some arbitrary code around it (before and after). **With Execute Around,
+we write this before/after code in some helper function and then wrap our original call within a call to this helper**.
+
+The key takeaway of this section is that **you should force yourself into thinking about handling bits of logic and
+juggling them as first-class citizens in Java 8**. It will make your code more elegant, simple, and expressive.
+
+**How to implement type specific logic**
+The task is simple: there are 3 movie types, each with its own formula for computing the price based on the loan number
+of days.
+
+One way to do it
+```java
+class Movie {
+    enum Type {
+        REGULAR, NEW_RELEASE, CHILDREN
+
+    }
+
+    private final Type type;
+    public Movie(Type type) {
+        this.type = type;
+    }
+
+    public int computePrice(int days) {
+
+        switch (type) { 
+            case REGULAR: return days + 1;
+            case NEW_RELEASE: return days * 2;
+            case CHILDREN: return 5;
+            default: throw new IllegalArgumentException(); // Always have this here!
+        }
+    }
+}
+```
+The problem in the code above could be the `switch`: whenever you add a new value to the enum, you need to hunt down all
+the switches and make sure you handle the new case. But this is fragile. The `IllegalArgumentsException`will pop up, but
+only if you walk the path from tests/UI/API. In short, although anyone can read this code, it's a bit risky.
+
+One way to avoid this risk would be an OOP solution.
+
+```java
+abstract class Movie {
+    public abstract int computePrice(int days);
+}
+
+class RegularMovie extends Movie {
+
+    public int computePrice(int days) {
+        return days+1;
+    }
+}
+
+class NewReleaseMovie extends Movie {
+
+    public int computePrice(int days) {
+        return days*2;
+    }
+}
+
+class ChildrenMovie extends Movie {
+
+    public int computePrice(int days) {
+        return 5;
+    }
+}
+```
+If you create a new type of movie, a new subclass actually, the code won't compile unless you implement `computePrice()`.
+But, it `extends` again! What if you want to classify the movies by another criterion, say release year? Or how would
+you handle the "downgrade" from a `Type.NEW_RELEASE` to a `TYPE.REGULAR` movie after several months?
+
+One more requirement added to the original task. The factor in the price formula for new release movies must be updatable
+via the database. This means that I have to get this factor from some injected repository. But, since I can't inject repos
+in my `Movie` entity, let's move the logic to a separate class:
+
+```java
+public class PriceService {
+
+    private final NewReleasePriceRepo repo;
+
+    public PriceService(NewReleasePriceRepo repo) {
+        this.repo = repo;
+    }
+
+    public int computeNewReleasePrice(int days) {
+        return (int) (days * repo.getFactor());
+    }
+
+    public int computeRegularPrice(int days) {
+        return days + 1;
+    }
+
+    public int computeChildrenPrice(int days) {
+        return 5;
+    }
+
+    public int computePrice(Movie.Type type, int days) {
+
+        switch (type) {
+            case REGULAR: return computeRegularPrice(days);
+            case NEW_RELEASE: return computeNewReleasePrice(days);
+            case CHILDREN: return computeChildrenPrice(days);
+            default: thrownew IllegalArgumentException();
+        }
+    }
+}
+```
+But the `switch` is back with the inherent risks! Is there any way to make sure no one forgets to define the associated
+price formula? And mow for the grand finale:
+
+```java
+public class Movie { 
+
+   public enum Type {
+        REGULAR(PriceService::computeRegularPrice),
+
+        NEW_RELEASE(PriceService::computeNewReleasePrice),
+
+        CHILDREN(PriceService::computeChildrenPrice);
+
+        public final BiFunction<PriceService, Integer, Integer> priceAlgo;
+
+        private Type(BiFunction<PriceService, Integer, Integer> priceAlgo) {
+            this.priceAlgo = priceAlgo;
+      }
+   }
+}
+// And instead of the switch
+
+class PriceService {
+    // ...
+    public int computePrice(Movie.Type type, int days) {
+        return type.priceAlgo.apply(this, days);
+    }
+}
+```
+I am storing into each enum value a method reference to the corresponding instance method from `PriceService`. Since I
+refer to instance methods in a static way (from `PriceService::`), I will need to provide the `PriceService` instance as
+the first parameter at the invocation time. And I give it `this`. This way I can effectively reference methods from any
+(Spring) bean from the static context of the definition of an enum value. Look at programming/MyEnumerations.java for an
+example.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
