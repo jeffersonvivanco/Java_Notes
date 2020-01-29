@@ -46,17 +46,14 @@ class Movie {
 
 class PriceService {
     public int computeRegularPrice(int days) {
-        // todo
         System.out.printf("computing regular price for %d days%n", days);
         return 0;
     }
     public int computeNewReleasePrice(int days) {
-        // todo
         System.out.printf("computing new release price for %d days%n", days);
         return 0;
     }
     public int computeChildrenPrice(int days) {
-        // todo
         System.out.printf("computing children price for %d days%n", days);
         return 0;
     }

@@ -91,7 +91,6 @@ class JUnitTutorial {
     }
 
     boolean isPalindrome(String candidate){
-        // Todo: write method
         return true;
     }
 
