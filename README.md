@@ -302,6 +302,9 @@ StringBuilder yourself.
   
   
   
+  
+  
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -339,6 +342,9 @@ StringBuilder yourself.
   means that the class is not a complete one (for ex, an abstract class). Another advantage -- from a program design perspective -- is
   the idea of "programming to an interface, not implementations." That means that when we are designing our code, we should
   focus on the interface or the functionalities that the interface provides, not the actual implementation.
+  
+  
+  
   
   
   
@@ -656,6 +662,43 @@ refer to instance methods in a static way (from `PriceService::`), I will need t
 the first parameter at the invocation time. And I give it `this`. This way I can effectively reference methods from any
 (Spring) bean from the static context of the definition of an enum value. Look at programming/MyEnumerations.java for an
 example.
+
+## Checked and Unchecked exceptions in java
+
+### Checked Exceptions
+In general, checked exceptions represent errors outside the control of the program. For example,
+the constructor of `FileInputStream` throws *FileNotFoundException* if the input file does not
+exist.
+
+**Java verifies checked exceptions are compile-time.** Some common checked exceptions in Java are
+`IOException`, `SQLException`, and `ParseException`. The `Exception` class is the superclass of
+checked exceptions. Therefore, we can create a custom checked exception by extending *Exception*.
+
+
+### Unchecked Exceptions
+If a program throws an unchecked exception, it reflects some error inside the program logic. For
+example, if we divide a number by 0, Java will throw an *Arithmetic Exception*.
+
+**Java does not verify unchecked exceptions at compile-time**. Furthermore, we don't have to declare
+unchecked exceptions in a method with the *throws* keyword. And although dividing by zero does not
+throw any errors during compile-time, it will throw an *Arithmetic Exception* at runtime. Some
+common unchecked exceptions in Java are *NullPointerException*, *ArrayIndexOutOfBoundsException*,
+and *IllegalArgumentException*. The `RuntimeException` class is the superclass of all unchecked
+exceptions. Therefore, we can create a custom unchecked exception by extending *RuntimeException*.
+
+### When to use checked exceptions and unchecked exceptions
+It's a good practice to use exceptions in Java so that we can separate error-handling code from
+regular code. However, we can decide which type of exception to throw. The Oracle Java Documentation
+provides guidance on when to use checked exceptions and unchecked exceptions:
+
+> If a client can reasonably be expected to recover from an exception, make it a checked exception.
+If a client cannot do anything to recover from the exception, make it an unchecked exception.
+
+For example, before we open a file, we can first validate the input file name. If the user input
+file name is invalid, we can throw a custom checked exception. In this way, we can recover the
+system by accepting another user input file name. However, if the input file name is a null pointer
+or it is an empty string, it means that we have some errors in the code. In this case, we should
+throw an unchecked exception.
 
 
 
