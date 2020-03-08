@@ -305,6 +305,8 @@ StringBuilder yourself.
   
   
   
+  
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -342,12 +344,6 @@ StringBuilder yourself.
   means that the class is not a complete one (for ex, an abstract class). Another advantage -- from a program design perspective -- is
   the idea of "programming to an interface, not implementations." That means that when we are designing our code, we should
   focus on the interface or the functionalities that the interface provides, not the actual implementation.
-  
-  
-  
-  
-  
-  
   
   
 ## Functional Programming Techniques: Functional Interfaces, Streams, Parallel Collections
@@ -700,12 +696,233 @@ system by accepting another user input file name. However, if the input file nam
 or it is an empty string, it means that we have some errors in the code. In this case, we should
 throw an unchecked exception.
 
+## Input and Output
 
+### Streams and Readers/Writers
+Java provides two sets of classes for reading and writing. The `Stream` section of package `java.io` is for reading and
+writing bytes of data. Older languages tended to assume that a byte (which is a machine-specific collection of bits,
+usually 8 bits on modern computers) is exactly the same thing as a "character"--a letter, digit, or other linguistic
+element. However, Java is designed to be used internationally, and 8 bits is simply not enough to handle the many different
+character sets around the world. Script-based languages like Arabic and Indian languages, and pictographic languages
+like Chinese and Japanese, each have many more than 256 characters, the max that can be represented in an 8-bit byte.
 
+The unification of these many character code sets is called Unicode. Both Java and XML use Unicode as their character
+sets, allowing you to read/write text in any of these human languages. But you should use `Reader`s and `Writer`s, not
+`Stream`s , for textual data.
 
+Unicode itself doesn't solve the entire problem. Many of these human languages were used on computers long before Unicode
+was invented, and they didn't all pick the same representation as Unicode. And they all have zillions of files encoded in
+a particular external representation in which a user's files are written. These converters are packaged inside a powerful
+set of classes called `Reader`s and `Writer`s.
 
+### reading standard input
+To read bytes, wrap a `BufferedInputStream()` around `System.in`. For the more common case of reading text, use an
+`InputStreamReader` and a `BufferedReader`.
 
+Most desktop platforms support the notion of standard input (a keyboard, a file, or the output from another program) and
+standard output (a terminal window, a printer, a file on disk, or the input yet to another program). Most such systems
+also support a standard error output so that error messages can be seen by the user even if the standard output is being
+redirected. When programs on these platforms start up, the 3 streams are preassigned to particular platform-dependent
+handles, or *file descriptors*. The net result is that ordinary programs on these operating systems can read the standard
+input or write to the standard output or standard error stream without having to open any files or make any special
+arrangements.
 
+Java continues this tradition and enshrines it in the `System` class. The static variables `System.in`, `System.out`, and
+`System.err` are connected to the 3 OS streams before your program begins execution (an application is free to reassign
+these). So to read the standard input, you need only refer to the variable `System.in` and call its methods. 
+
+For example, to read 1 byte from the standard input
+
+```java
+public class A {
+    public static void main() {
+        int b = 0;
+        try {
+            b = System.in.read();
+            System.out.printf("\nyou typed %c", b);
+        } catch (Exception e) {
+            System.err.println("caught " + e);
+        }
+    }
+}
+```
+
+Well, that certainly works and gives you the ability to read a byte at a time from the standard input. But most applications
+are designed in terms of larger units, such as integers or lines of text. To read a value of a known type, such as an int,
+from the standard input, you can use the Scanner class.
+
+```java
+public class A {
+    public static void main() {
+        Scanner sc = Scanner.create(System.in);
+        int i = sc.nextInt();
+    }
+}
+```
+
+For reading characters of text with an input character converter so that your program will work with multiple input
+encodings around the world, use a `Reader` class. The particular subclass that allows you to read lines of characters
+is a `BufferedReader`. But there's a hitch. Remember those 2 categories of input classes, Streams and Readers? But also
+that `System.in` is a Stream, and you want a Reader. How do you get from a Stream to a Reader? A "crossover" class called
+`InputStreamReader` is tailor-made for this purpose. Just pass your Stream (like `System.in`) to the `InputStreamReader`
+constructor and you get back a Reader, which in turn pass to the `BufferedReader` constructor.
+
+For example, to read lines of text
+
+```java
+public class A {
+    public static void main() {
+        try{
+            BufferedReader is = new BufferedReader(new InputStreamReader(System.in));
+            String inputLine;
+            while ((inputLine = is.readLine()) != null) {
+                // if its an integer
+                int val = Integer.parseInt(inputLine);
+                System.out.println(val);
+            }
+        } catch (IOException e) {
+            System.err.println("IOException: " + e);
+        } catch (NumberFormatException e) {
+            System.err.println("Not a number");   
+        }
+    }
+}
+```
+
+### reading from the console or controlling terminal; reading passwords without echoing
+You want to read directly from the program's controlling terminal or console terminal.
+
+Use the Java 6 `System.console()` method to obtain a console object, and use its methods.
+
+The `Console` class is intended for reading directly from a program's controlling terminal. When you run an application
+from a "terminal window" or "command prompt window" on most systems, its console and standard input are both connected
+to the terminal, by default. However, the standard input can be changed by piping or redirection on most OSes. If you
+really want to read from "wherever the user is sitting," bypassing any indirections, then the `Console` class is usually
+your friend.
+
+For example, prompting for a name and reading it from the console
+```java
+public class ConsoleRead {
+    public static void main(String[] args) {
+        String name = System.console().readLine("What is your name?");
+        System.out.println("Hello " + name);
+    }
+}
+```
+One complication is that the `System.console()` method can return null if the console isn't connected. Annoyingly, some
+IDEs including Eclipse don't manage to set up a controlling terminal. So production quality code should always check for
+null before trying to use `Console`. If you do get null, you can fall back to to using the code above ("reading
+standard input").
+
+One facility the `Console` class is quite useful for is reading a password without having it echo. This has been a standard
+facility of command-line applications for decades, as the most obvious way of preventing "shoulder surfing"--looking over
+your shoulder to see your password. Nonecho password reading is now supported in Java: the `Console` class has a
+`readPassword()` method that takes a prompt argument. This method returns an array of bytes, which can be used directly
+in some encryption and security APIs, or it can be easily converted into a String. It is generally advised to overwrite
+the byte array after use to prevent security leaks when other code can access the stack, although the benefits of this
+are probably reduced when you've constructed a String.
+
+```java
+public class ReadPassword {
+    public static void main(String[] args) {
+        Console cons;
+        if ((cons = System.console()) != null) {
+            char passwd[] = null;
+            try{
+                passwd = cons.readPassword("Password: ");
+                // In real life you would send the password into authentication code
+                System.out.println("Your password was: " + new String(passwd));
+            } finally{
+                // Shred this in-memory copy for security reasons
+                if (passwd != null) {
+                    Arrays.fill(passwd, ' ');
+                }
+            }
+        } else {
+            throw new RuntimeException("No console, cant get password");
+        }
+    }
+}
+``` 
+
+## Techniques for writing better Java
+
+### Avoid `valueOf` when possible
+Use proper types to represent data since Java is an object oriented language. The only reasons to use `valueOf` is when
+you can't create the proper class for the object that you are trying to represent. If that's the case, then create a
+wrapper object around the object with the string value and immediately return the new object, this way the correct object
+is used thoughout your app. 
+
+Their inclusion in an application in an application should be considered a code smell and is indicative that we have a
+`String` that should be represented by another data type.
+
+### Avoid `instanceof` when possible
+Similar to `valueOf`, the `instanceof` keyword provides an opportunity to circumvent the type-checking system of the
+Java compiler. While there are cases (especially when working with low-level code or when using reflection) that
+`instanceof` may be necessary, it should be treated as a code smell. It is likely a sign that we are skipping 
+strict-type-checking (and therefore losing the benefits of the Java type-checking system).
+
+* In many cases, `instanceof` is used to safely convert an object of a known supertype into an object of the desired type
+  (called downcasting). This downcasting is common when implementing the equals method in a custom class.
+* By first checking to see if an object is an instance of the interface or parent class, we ensure that we are downcasting
+  to the correct object. This is known as a safe, or checked, downcast. An unchecked downcast occurs if we do not check
+  for the implementation type of an object before casting that object to that type.
+* If an unsafe downcast is performed at runtime, an exception is thrown. This issue is so common that Java even provides
+  a warning when performing unsafe downcasts using generics (whose runtime generic type cannot be determined due to Java's
+  use of unreified generic types).
+* Being that downcasting can cause problems, it is always a sound idea to use a checked downcast through `instanceof`
+  whenever possible.
+* Whatsmore, **we should avoid the use of `instanceof` altogether**. In many cases, `instanceof` calls are used as an
+  alternative to proper polymorphism.
+  
+Although there may be a few specific cases where `instanceof` is necessary (such as implementing the `equals` method),
+in general, `instanceof` checks and unsafe downcasts should be avoided. We should instead use polymorphism to vary behavior
+based on the implementation type of an object.
+
+### Throw exceptions early 
+When error checking must occur at runtime, it is best to throw exceptions as early as possible. In large, complex
+environments where objects are instantiated in 1 thread and called in another, improper exception handling can cause
+debugging nightmares. In many cases, the results of improper exception handling can be subtle and insidious.
+
+* For example, let's say we have this class
+```java
+public class GreetingService {
+    private final GreetingCreatorService service;
+    public GreetingService(GreetingCreatorService service) {
+        this.service = service;
+    }
+    public String createGreeting(String name, String greeting) {
+        return service.create(name, greeting);
+    }
+}
+
+class GreetingCreatorService {
+    // ...
+}
+```
+* here the `GreetingCreatorService` is passed in the constructor when we instantiate GreetingService. And we call the
+  `create()` of `GreetingCreatorService` from the `createGreeting()`. If null gets passed in the constructor, we'll get
+  a null pointer exception when calling `createGreeting`. In the stack trace, we will only see that the NPE happened in
+  the `createGreeting()`, when what really happened is that it was initialized to null in the constructor.
+* To catch this error early, instead we check for null in the constructor using the `Objects.requireNonNull()`, ex:
+  `this.service = Objects.requireNonNull(service);`
+* if null is passed in the constructor, a NPE will be thrown and we will see in the stack trace that it happened in the
+  constructor, which means we'll catch the bug faster, instead of waiting for when it gets called in `createGreeting()`.
+* this concept of moving the `null` check into the constructor is closely related to the concept of Design by Contract (DBC).
+  In this technique, every method has the following methods:
+  1. Preconditions - things that must be true for the method to be called
+  2. Postconditions - things that must be true once the method completes execution
+  3. Invariants - things that must be true throughout the life of an object
+* For example, a precondition might be that some data is available for use, and a postcondition may be that the result of
+  a method, if multiplied by itself, must be equal to the argument supplied to the method (i.e., square root function).
+  While DBC can be over-formalized, we can use the concept of an invariant to express out `null` check.
+* When we check that the `GreetingCreatorService` object supplied to our `GreetingService` constructor is not `null`, we
+  know that if the `GreetingService` is successfully constructed, the `GreetingCreatorService` will never be `null`.
+* Since the `GreetingCreatorService` is marked as `final`, the constructor is the only mechanism that can set its value.
+  If the value supplied to the constructor is non-`null`, then we know that the `GreetingCreatorService` will be non-`null`
+  for the life of the object. Therefore, we never need to check again whether the `GreetingCreatorService` is `null`: We
+  assume that it is non-`null`. This amounts to an invariant in our `GreetingService` class.
+* Generally, it is best 
 
 
 

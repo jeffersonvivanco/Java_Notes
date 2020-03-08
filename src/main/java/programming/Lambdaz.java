@@ -115,7 +115,7 @@ public class Lambdaz {
 
 //        consumerDemo();
 //        predicateDemo();
-//        functionDemo();
+        functionDemo();
 //        supplierDemo();
 
     }
@@ -158,7 +158,7 @@ public class Lambdaz {
 
     static void functionDemo() {
         Function<Integer, Integer> doubleTheNumber = (n1) -> 2 * n1;
-        System.out.printf("2 doubled, %s", doubleTheNumber.andThen((n1) -> n1 + " is the answer").apply(2));
+        System.out.printf("\n2 doubled, %s", doubleTheNumber.andThen((n1) -> n1 + " is the answer").apply(2));
     }
 
     static void supplierDemo() {
