@@ -307,6 +307,7 @@ StringBuilder yourself.
   
   
   
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -344,6 +345,7 @@ StringBuilder yourself.
   means that the class is not a complete one (for ex, an abstract class). Another advantage -- from a program design perspective -- is
   the idea of "programming to an interface, not implementations." That means that when we are designing our code, we should
   focus on the interface or the functionalities that the interface provides, not the actual implementation.
+  
   
   
 ## Functional Programming Techniques: Functional Interfaces, Streams, Parallel Collections
@@ -922,15 +924,199 @@ class GreetingCreatorService {
   If the value supplied to the constructor is non-`null`, then we know that the `GreetingCreatorService` will be non-`null`
   for the life of the object. Therefore, we never need to check again whether the `GreetingCreatorService` is `null`: We
   assume that it is non-`null`. This amounts to an invariant in our `GreetingService` class.
-* Generally, it is best 
 
+### Only perform targeted optimizations
+Performance concerns are at the core of almost every large-scale software system. While we desire to produce the most
+efficient code we can, many times it is difficult to find the places in our code where we can perform optimizations that
+actually make a difference.
 
+It is important to note that very few optimizations come for free: Instead, we usually implement techniques, such as
+caching, loop unrolling, or pre-computing values (such as the creation of a lookup table) that adds to the complexity
+of our system and commonly reduces the readability of our code. If our optimization actually increases the performance of
+our system, then this increased complexity may pay off, but in order to make an educated decision, we must know 2 pieces
+of information first:
 
+1. our performance requirements
+  * We need to know the performance envelope that our system is required to operate within. If we are within that envelope
+    and there are no complaints from the end users of the system, there is likely no need to make a performance optimization.
+    There may come a point down the road, though, when new functionality is added or the data size of our system increases
+    and we are forced to make such optimizations.
+  * In that case, we should not go by our gut or even inspection. Even the best software engineers are prone to target the
+    wrong optimizations in a system. As Martin Fowler says
+    
+    > The interesting thing about performance is that if you analyze most programs, you find that they waste most of their
+      time in a small fraction of code. If you optimize all the code equally, you end up with 90% of the optimizations 
+      wasted, because you are optimizing code that isn't run much. The time spent making the program fast, the time lost
+      because of lack of clarity, is all wasted time.
+    
+    Not only will most of our first guesses not improve the performance of our system, 90% of them will be a sheer waste
+    of development time. Instead, we should profile the system as we execute common use cases in a production environment
+    and find where the bulk of the system resources are used during execution. If, for example, a majority of the execution
+    time is spent in 10% of the code, then optimizing the other 90% of the code is simply a waste. 
+        
+2. where the performance bottlenecks are located
+  * Using that knowledge, we should start with the highest culprit, according to the profiling results. This will ensure
+    that we actually increase the performance of our system in a meaningful way. After each optimization, the profiling
+    step should be repeated. This allows us not only to ensure that we have actually improved the performance of our
+    system but also to see where the performance bottlenecks are located after we have improved a portion of the system
+    (since 1 bottleneck is removed, others may now consume more of the overall resources of the system). It is important
+    to note that the percentage of time spent in the existing bottlenecks will likely increase since the remaining bottlenecks
+    are temporarily constant and the overall execution time should have decreased with the removal of the targeted bottleneck.
+    
+### Favor Enums over Constants
+The rule for using enumeration over constants can, therefore, be distilled into:
+**Use enumerations when all possible discrete values are known a priori**.
 
+### Define an equals method
+Identity can be a difficult issue to solve: Are two objects the same if they occupy the same location in memory? Are they
+the same if their IDs are the same? Or are they the same if all of their fields are equal? Although each class may have
+its own identity logic, there is a tendency to proliferate identity checks throughout different places in the system.
 
+Instead of spreading the identity logic for our class through our system, we should internalize this logic within our
+class. Every class, by nature of implicitly implementing the `Object` class, inherits the `equals()`. By default, this
+method checks for object identity (the same object in memory) against the supplied object. This equals method serves as
+a natural place to inject our identity logic (by overriding the default `equals` implementation):
+```java
+public class Ferret {
+    private String id;
+    private String name;
+    public Ferret(String name) {
+        this.name = name;
+        this.id = UUID.randomUUID().toString();
+    }
+    public String getId() {
+        return this.id;
+    }
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        else if (!(other instanceof Ferret)) return false;
+        else return ((Ferret) other).getId().equals(this.getId());
+    }
+}
+```
 
+Apart from reducing the duplication in our system, there are also some extra advantages to overriding the default `equals()`.
+For example, if we construct a list of `Ferret` objects and check to see if the list contains another Ferret object with
+the same ID (different object in memory), we receive a value of `true`, since the two are considered equal.
 
+It is important to note that when the `equals()` is overridden, the `hashCode` method should also be overridden.
 
+### Favor polymorphism over conditionals
+Conditionals are an ubuquitous part of any programming language and for good reason. Their inclusion allows us to change
+the behavior of our system based on the instantaneous state of a given value or object. While for a simple program this
+will work fine, it betrays a noticeable flaw: We are deciding on the behavior of our system based on the conditional.
+Not only does this require that we check the type each time we wish to make a decision, it also requires that we repeat
+this logic each and every time we need to make that decision. This can become unruly, especially when we receive a requirement
+to add a new condition.
+
+Instead of using the condition as a differentiator, we can use polymorphism to implicitly make that decision. For example,
+let's say we have this:
+```java
+enum PetType {
+DOG, CAT;
+}
+class Pet {
+    private final PetType type;
+    public Pet(PetType type) {
+        this.type = type;
+    }
+    public void speak() {
+        switch (this.type) {
+            case CAT:
+                System.out.println("Meaowwwwww");
+                break;
+            case DOG:
+                System.out.println("Wooofff");
+                break;
+        }
+    }
+}
+```
+In order for us to use polymorphism to make the decision what it should call when the pet speaks, we have to transform
+the `Pet` concrete class into an interface and push the decision-making into a series of concrete classes that represent
+each type of pet.
+```java
+interface Pet {
+    public void speak();
+}
+class Dog implements Pet {
+    @Override
+    public void speak() {
+        System.out.println("Wooof");
+    }   
+}
+class Cat implements Pet {
+    @Override
+    public void speak(){
+        System.out.println("Meaooowww");
+    }
+}
+```
+Not only does this decentralize the knowledge of each pet into its own class, but it allows our design to vary in two
+important ways. First if we wanted to add a new pet type, we simply create a new concrete class that implements the
+`Pet` interface and supply implementations for both interface methods. In the conditional design, we would have to add
+a new value in our enumeration, add new case statements in both methods, and insert logic for the new pet under each
+case statement.
+
+Second, if we wish to add a new method to the `Pet` interface, we simply add the new method in each of the concrete
+classes. In the conditional design, we would have to duplicate the existing switch statement and add it to our new method.
+Furthermore, we then would have to add the logic for each pet type within each case statement.
+
+Mathematically, when we create a new method or add a new type, we have to make the same number of logical changes in
+both the polymorphic and conditional designs. For example, if we add a new method, in the polymorphic design, we have to
+add a new method to all *n* pet concrete classes, while in the conditional design, we have to add *n* new case statements
+to our new method. While the number of changes we must make is equal, the nature of the changes is very different. In the
+polymorphic design, if we add a new pet type and forget to include a method, the compiler will throw an error, since we
+did not implement all of the methods in the `Pet` interface. In the conditional design, there is no such check to ensure
+that we have a case statement for each of the types.
+
+### Get to know the Object class
+One of the most common first-day lessons for object-orientation in Java is the default superclass for all classes: `Object`.
+In total, the `Object` class has 11 methods that are inherited by all classes in the Java environment. The methods
+`equals` and `hashcode` are essential to daily programming in Java.
+
+`equals`
+* This method allows for equality comparison between two objects, returning `true` if the objects are equal and `false`
+  otherwise.
+* In practice, overriding the equals method results in the following implementation structure:
+  * check if the supplied object is this object
+  * check if the supplied object has the same type as this object
+  * check if the fields of the supplied object are the same as the fields of this object
+  
+`hashcode`
+* The second pair in the `Object` tandem is the `hashCode` method, which generates an integer hash code that corresponds
+  to an object. This hash code is used as the hash digest when making insertions in hash-based data structures, such as
+  `HashMap`. Just like the `equals()`, the entirety of the Java environment makes assumptions about the behaviour of the
+  `hashcode()` that are not reflected programmatically.
+    * Hash codes for an object must be constant while the data that is factored into the hash code remains unchanged;
+      generally, this means that the hash code for an object remains constant if the state of the object is unchanged
+    * hash codes must be equal for objects that are equal according to the `equals()`
+    * hash codes for 2 objects are not required to be unequal if the 2 objects are unequal according to their `equals()`,
+      although, algorithms and data structures that rely on hash codes usually perform better when unequal objects result
+      in unequal hash codes
+* Hash codes are usually some ordered summation of the values of each field in an object. This ordering is usually achieved
+  through multiplication of each component in the summation. The multiplicative factor 31 is selected:
+    * The number 31 was chosen because it's an odd prime. If it were even, and the multiplication overflowed, information
+      would be lost, because multiplication by 2 is equivalent to shifting. The advantage of using a prime is less clear,
+      but it's traditional. A nice property of 31 is that the multiplication can be replaced by a shift and a subtraction
+      for better performance on some architectures: `31 * i = (i << 5) - i`
+    * For example, the hash code for some arbitrary set of fields is usually computed in practice using the following
+      series of calculations.
+      ```java
+      int res = field1.hash();
+      res = (31 * res) + field2.hash()
+      res = (31 * res) + field3.hash()
+      ```
+* in order to reduce the tediousness of implementing the `hashCode()` for a class with numerous fields, the `Objects`
+  class includes a static method `hash` that allows for an arbitrary number of values to be hashed.
+* while the `Objects#hash` method reduces the clutter of the `hashCode()` and improves its readability, it does come with
+  a price: since the `hash()` uses variable arguments, the JVM creates an array to hold its arguments and requires boxing
+  of arguments that are of a primitive type. All things considered, the `hash()` is a good default when overriding the
+  `hashCode()`, but if better performance is required, the manual multiply-and-sum operation should be implemented or the
+  hash code should be cached.
+* lastly, due to the conjoined constraints of the `equals()` and `hashCode()`, whenever one of the methods is overriden, the
+  other should be overriden as well.
 
 
 
