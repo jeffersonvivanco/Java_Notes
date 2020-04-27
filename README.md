@@ -219,7 +219,102 @@ My notes from reading the book Java Cookbook by Ian F. Darwin and my some of my 
       your application, the different heuristics may be a good fit. Its pause times might not be as brief as ZGC's, but they
       are more predictable. While Shenandoah was not made available as part of Java until version 12, it's been around longer
       than ZGC. It's seen more testing and is even available as a backport for both java 8 and 10.
-      
+       
+## The Java Platform
+Java is a platform which means it provides a platform to develop the application. It offers a group of programs that are
+developed and runs the program written in java language. It is an independent platform that has a compiler, execution
+engine, and a set of libraries. The java environment like Java Virtual Machine and Java Run-time Environment convert code
+into machine language.
+
+The bytecode makes the java platform independent. Jlink is a command-line tool that allows to link sets of modules to
+create run-time images.
+
+The link-time applies between compile time and run time. It simplifies and reduces the size of deployment. Java Dependency
+Analysis Tool (jdep) is a command-line tool that processes Java bytecode i.e. .class files or JARs that contain them. Jdep
+can also tell which JDK-internal APIs the project is using. With the help of this tool, you can examine various types of
+dependency graphs.
+
+### What is Java Architecture
+* In Java, there is a process of compilation and interpretation
+* The code written in Java, is converted into byte codes which is done by the Java Compiler
+* The byte codes, then are converted into machine code by the JVM
+* The machine code is executed directly by the machine
+
+![Java Architecture](./assets/javaArchitecture.png "Java Architecture")
+
+#### Components of Java Architecture
+There are 3 main components of the Java language: 
+**JVM** (Java Virtual Machine), **JRE** (Java Runtime Environment), and 
+**JDK** (Java Development Kit).
+
+##### Java Virtual Machine
+Java applications are called WORA (Write once Run Anywhere) because of their ability to run a code on any platform.
+This is done because of the JVM. The JVM is a java platform component that provides an environment for executing java
+programs. JVM interprets the bytecode into machine code which is executed in the macine in which the java program
+runs. So in a nutshell, the JVM performs the following functions:
+* loads the code
+* verifies the code
+* executes the code
+* provides runtime environment
+
+![JVM Architecture](./assets/jvmArchitecture.png "JVM Architecture")
+
+* **Class Loader**: is a subsystem of JVM. It is used to load class files. Whenever we run the java program, class loader
+  loads it first.
+* **Class method area**: it is one of the Data Area in the JVM, in which Class data will be stored. Static Variables,
+  Static Blocks, Static Methods, Instance Methods are stored in this area.
+* **Heap**: A heap is created when the JVM starts up. It may increase or decrease in size while the application runs.
+* **Stack**: JVM stack is known as a thread stack. It is a data area in the JVM memory which is created for a single
+  execution thread. The JVM stack of a thread is used by the thread to store various elements i.e; local variables, partial
+  results, and data for calling method and returns.
+* **Native stack**: it subsumes all the native methods used in your application.
+* **Execution Engine**:
+  * **JIT compiler**:
+    * The Just-In-Time (JIT) compiler is part of the runtime environment. It helps in improving the performance of Java
+      applications by compiling bytecodes for machine code at run time. The JIT compiler is enabled by default. When a
+      method is compiled, the JVM calls the compiled code of that method directly. The JIT compiler compiles the bytecode
+      of that method into machine code, compiling it "just in time" to run.
+    * The byte code has to be interpreted or compiled to proper machine instructions depending on the instruction set provided.
+      Also, these can be directly executed if the instruction architecture is byte code based. Interpreting the byte code
+      affects the speed of execution.
+    * In order to improve performance, JIT compilers interact with the JVM at run time and compile suitable bytecode sequences
+      into native machine code. When using a JIT compiler, the hardware is able to execute the native code, as compared to
+      having the JVM interpret the same sequence of bytecode repeatedly and incurring overhead for the translation process.
+  * **Garbage collector**:
+    * means to collect the unused material. In the JVM, this work is done by Garbage collection. It tracks each and every
+      object available in the JVM heap space and removes unwanted ones. Garbage collector works in 2 simple steps known
+      as Mark and Sweep:
+      * Mark - it is where the garbage collector identifies which piece of memory is in use and which are not
+      * Sweep - it removes objects identified during the "mark" phase
+* **Java Runtime Environment**:
+  * The JRE software builds a runtime environment in which Java programs can be executed. The JRE is the on-disk system
+    that takes your java code, combines it with the needed libraries, and starts the JVM to execute it. The JRE contains
+    libraries and software needed by your Java programs to run. JRE is a part of JDK but can be downloaded separately.
+* **Java Development Kit**
+  * The JDK is a software development environment used to develop java applications and applets. It contains JRE and several
+    development tools, an interpreter/loader (java), a compiler (javac), an archiver (jar), a documentation generator (javadoc)
+    accompanied with another tool.
+    
+![JDK Diagram](./assets/jdkDiagram.png "JDK Diagram")
+
+The blue area shown in the diagram is JDK. Development tools:
+* `java`: it is the launcher for all the java applications
+* `javac`: compiler of the java programming languages
+* `javadoc`: it is the apli documentation generator
+* `jar`: creates and manage all the JAR files
+
+##### How is Java platform independent?
+When is any programming language called as platform-independent? Well, if and only if it can run on all available OS with
+respect to its development and compilation. Now Java is platform-independent just because of the bytecode. In simple terms,
+Bytecode is a code of the JVM in which is machine-understandable. Bytecode execution in Java proves it is a platform-independent
+language. 
+
+![Compiling Diagram](./assets/compiling.png "Compiling Diagram")
+
+**sample.java -> javac (sample.class) -> JVM (sample.obj) -> final output**
+
+First source code is used by java compiler and is converted into a .class file. The class file is in byte code form and
+that class file is used by JVM to convert it into an object file. After that, you can see the final output on your screen.
 
 ## Compiling, Running, and Debugging
 
@@ -308,6 +403,9 @@ StringBuilder yourself.
   
   
   
+  
+  
+  
 ## Object Oriented Techniques
 * Advice, or Mantras
   * Use the API
@@ -345,6 +443,9 @@ StringBuilder yourself.
   means that the class is not a complete one (for ex, an abstract class). Another advantage -- from a program design perspective -- is
   the idea of "programming to an interface, not implementations." That means that when we are designing our code, we should
   focus on the interface or the functionalities that the interface provides, not the actual implementation.
+  
+  
+  
   
   
   
@@ -847,6 +948,16 @@ public class ReadPassword {
 }
 ``` 
 
+### Opening a File by name
+The Java documentation doesn't have methods for opening files.
+* How do I connect a filename on disk with a `Reader`, `Writer`, or `Stream`?
+* Construct a `FileReader`, `FileWriter`, `FileInputStream`, or `FileOutputStream`.
+* 
+
+### Reading a file into a String
+You need to read the entire contents of a file into a string.
+* Use 
+
 ## Techniques for writing better Java
 
 ### Avoid `valueOf` when possible
@@ -1117,7 +1228,6 @@ In total, the `Object` class has 11 methods that are inherited by all classes in
   hash code should be cached.
 * lastly, due to the conjoined constraints of the `equals()` and `hashCode()`, whenever one of the methods is overriden, the
   other should be overriden as well.
-
 
 
 

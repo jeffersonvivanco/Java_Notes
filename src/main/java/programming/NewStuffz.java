@@ -1,11 +1,17 @@
 package programming;
 
+import models.Employee;
+import models.Ferret;
+import models.Person;
+
 import static java.util.Calendar.*;
 
 public class NewStuffz {
 
     public static void main(String[] args){
-        switchStatements();
+//        switchStatements();
+//        records();
+        patternMatching();
     }
 
     private static void textBlocks() {
@@ -65,6 +71,18 @@ public class NewStuffz {
 
         System.out.println("Number of letters in Tuesday is " + numberOfLetters);
         System.out.println("Daily message: " + dailyMessage);
+    }
+
+    private static void records() {
+        Ferret buzz = new Ferret("Buzz", 7);
+        System.out.println(buzz);
+    }
+
+    private static void patternMatching() {
+        Person e = new Employee("Jeff", 25, "Software Engineer");
+        if (e instanceof Employee employee) {
+            System.out.printf("Name: %s, job: %s\n", employee.getName(), employee.getJob());
+        }
     }
 
 }
