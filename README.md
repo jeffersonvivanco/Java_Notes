@@ -1230,6 +1230,94 @@ In total, the `Object` class has 11 methods that are inherited by all classes in
   other should be overriden as well.
 
 
+## `jcmd`
+As per the manual, `jcmd` is a utility which sends diagnostic command requests to a running JVM. This utility gets various
+runtime information from a JVM. *It must be used on the same machine on which JVM is running*.
+
+### Get pid
+To get the associated pid for our application, one can use `jcmd` itself, which will list all applicable java processes.
+
+### Get list of possible jcmd usage
+`jcmd pid_of_app help`
+
+### `jcmd` commands
+`jcmd pid_of_app command_from_bottom`
+
+* `VM.version`
+* `VM.flags` - will print all VM arguments used by our app, either given by us or taken by default by jvm.
+* `VM.system_properties`
+* `VM.command_line`
+* `VM.uptime`
+* `VM.dynlibs`
+* `Thread.print` - to get the thread dump, will print the stack trace of all threads currently running
+* `GC.class_histogram` - will provide important information regarding heap usage and it lists all the classes (either
+  external or application specific) with a number of instances and their heap usage sorted by heap usage. As this list
+  is very long, one can look for their known classes using `grep` command to verify details or can route the output of
+  this command to a file output.
+* `GC.heap_dump` - if you want to get the jvm heap dump instantly, then this is the command to go for. Following is the
+  command usage, where *jvmTuningHeapDump* is the file name. `jcmd pid_of_app GC.heap_dump jvmTuningHeapDump`
+* JFR command options - if you want to analyze performance issues with their application then JFR, *Java Flight Recorder*,
+  is a great utility to provide information. `jcmd` can provide relevant JFR files for analysis on the fly. By default,
+  JFR features are disabled and to enable that feature one can opt the following way:
+  * `jcmd pid_of_app VM.unlock_commercial_features`
+  * JFR start with options `jcmd pid_of_app JFR.start name=JfrRecordingTest settings=profile delay=10s duration=30s filename=jfrrecordingtest.jfr`
+  * One can check the status of recording using the `JFR.check` command also `jcmd pid_of_app JFR.check`
+  * Recorded JFR files can be used in other utilities like JMC to analyse further
+* `VM.native_memory` (Native Memory Tracking) - this is one of the best commands that can provide a lot of useful details
+  about *heap* and *non-heap* memory. This can be used to tune memory usage and detect any memory leak.
+  
+  As we know, JVM memory usage depends on many memory areas, broadly classified as heap and non-heap memory. To get the
+  details of complete JVM memory usage use this utility. This can be useful in defining your container size, if you are
+  creating distributed applications, and can save cost if tuned correctly.
+  
+  To use this feature, restart your application with additional argument `-XX:NativeMemoryTracking=summary` or `-XX:NativeMemoryTracking=detail`
+  Run the command like `jcmd pid_of_app VM.native_memory`
+  
+  Apart from *Java Heap* memory, *Thread* specifies the memory threads are using, also *Class* specifies the memory captured
+  to store class metadata, *Code* gives the memory used to store *JIT* generated code, *Compiler* itself has some space
+  usage, similarly *GC* occupies space. All these come under native memory usage.
+  
+  Total *reserved* can give rough estimation about memory required for your application, but various VM arguments can still
+  control things, as mostly are default memory usage here because we haven't configured all flags. All memories can be
+  tuned after requirement analysis.
+  
+  Notice, that all *committed* usage shows the actual used memory and *reserved* shows what jvm expects usage over time.
+  ```text
+  Java Heap (reserved=524288KB, committed=524288KB)
+          (mmap: reserved=524288KB, committed=524288KB) 
+  ```
+  
+  We specified heap memory i.e.`Xms=512m` which is equivalent to 524288KB, hence committed memory is the same as *Xms*.
+  Similarly, *Xmx* is mapped to reserved memory.
+  
+  This command gives the snapshot of current memory usage. To analyse the memory leak, one should *baseline* the memory
+  stats after starting application using command `jcmd pid_of_app VM.native_memory baseline`.
+  
+  Then *diff* can be used to observe the change, where exactly memory is being used. Over the time as GC works you will
+  notice an increase and decrease in memory. But if there is only an increase in memory usage, then it could be a memory
+  leak issue. Identify the leak area, like heap, thread, code, class, etc. If your application requires more memory, tune
+  corresponding VM arguments accordingly.
+  
+  *If memory leak is in heap, take heap dump, or if number of threads are increasing, use thread pool. If any of the threads
+  cause OOM, Xss can be tuned.*
+  
+  ```text
+  Thread (reserved=11895KB +529KB, committed=11895KB +529KB)
+                (thread #20 +2)
+                (stack: reserved=11812KB +520KB, committed=11812KB +520KB)
+                (malloc=61KB +7KB #101 +10)
+                (arena=22KB +2 #35 +4)
+  ```
+  'stack' shows the thread stack memory, and that could mismatch what you have configured using Xss while running the
+  application. As some JVM system threads allocate stack memory as per their usage and the user can't override those using
+  Xss.
+
+
+
+
+
+
+
 
 
 
